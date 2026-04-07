@@ -53,7 +53,7 @@ export default function Home() {
     <main className="mx-auto w-full max-w-3xl px-6 py-12 space-y-8">
       {/* Header */}
       <header>
-        <h1 className="text-2xl font-bold text-zinc-900">code-eval-workbench</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">code-eval-workbench</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Evaluates Grok&rsquo;s solutions to coding challenges against predefined test cases in a
           sandboxed environment.
