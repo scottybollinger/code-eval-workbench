@@ -59,7 +59,7 @@ app/api/evaluate/route.ts
 
 ## Sandbox design
 
-Running untrusted LLM-generated code requires two layers of isolation. Using only a timeout (Option A) leaves the main server process exposed. The Node.js `vm` module alone (Option C) has known escape vectors. This project uses both, in series — defense in depth.
+Running untrusted LLM-generated code requires two layers of isolation. Using only a timeout leaves the main server process exposed. The Node.js `vm` module alone has known escape vectors. This project uses both, in series — defense in depth.
 
 ### Layer 1 — child_process.fork (process isolation)
 
