@@ -4,6 +4,8 @@ A coding evaluation workbench that presents predefined challenges to xAI's Grok 
 
 Built as a demo for xAI's Human Data team evaluation engineering role.
 
+Deployed to Vercel: https://code-eval-workbench.vercel.app/
+
 ---
 
 ## Architecture
