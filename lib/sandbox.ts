@@ -23,13 +23,20 @@ export function runTestCases(
   return new Promise((resolve, reject) => {
     let settled = false
 
-    const settle = (fn: (v: unknown) => void, value: unknown) => {
+    function settleResolve(value: TestResult[]) {
       if (settled) return
       settled = true
       clearTimeout(timer)
-      // Kill the worker regardless of whether it exited cleanly.
       try { worker.kill() } catch { /* already dead */ }
-      fn(value)
+      resolve(value)
+    }
+
+    function settleReject(reason: Error) {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      try { worker.kill() } catch { /* already dead */ }
+      reject(reason)
     }
 
     const worker = fork(WORKER_PATH, [], {
@@ -39,17 +46,17 @@ export function runTestCases(
     })
 
     const timer = setTimeout(() => {
-      settle(reject, new Error('Sandbox process timed out after 15s'))
+      settleReject(new Error('Sandbox process timed out after 15s'))
     }, PROCESS_TIMEOUT_MS)
 
-    worker.on('message', (results) => settle(resolve, results))
+    worker.on('message', (results) => settleResolve(results as TestResult[]))
 
-    worker.on('error', (err) => settle(reject, err))
+    worker.on('error', (err) => settleReject(err))
 
     worker.on('exit', (code) => {
       // Non-zero exit without a prior message means the worker crashed.
       if (code !== 0 && code !== null) {
-        settle(reject, new Error(`Sandbox worker exited unexpectedly (code ${code})`))
+        settleReject(new Error(`Sandbox worker exited unexpectedly (code ${code})`))
       }
     })
 
