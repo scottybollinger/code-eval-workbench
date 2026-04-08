@@ -62,8 +62,8 @@ Requirements:
         expected: [2, 4],
       },
       {
-        description: 'non-adjacent solution in larger array',
-        args: [[1, 5, 3, 8, 12, 4], 9],
+        description: 'non-adjacent solution — unique pair in larger array',
+        args: [[2, 5, 3, 8, 12, 4], 9],
         expected: [1, 5],
       },
     ],
