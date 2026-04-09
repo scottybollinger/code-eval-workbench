@@ -28,8 +28,7 @@ code-eval-workbench/
 │   ├── challenges.ts               # Typed Challenge + TestCase config (single source of truth)
 │   ├── types.ts                    # Shared TypeScript types
 │   ├── grok.ts                     # Server-only xAI API client
-│   ├── sandbox.ts                  # Server-only: forks worker, manages timeout
-│   └── sandbox-runner.js           # Child process worker: vm isolation + test execution
+│   └── sandbox.ts                  # Server-only: spawns inline worker, manages timeout
 │
 ├── .env.local.example              # Environment variable template
 └── README.md
@@ -47,12 +46,12 @@ app/api/evaluate/route.ts
   │
   ├─► lib/challenges.ts      look up Challenge by id
   ├─► lib/grok.ts            call xAI API → raw code string
-  └─► lib/sandbox.ts         fork sandbox-runner.js
+  └─► lib/sandbox.ts         spawn(process.execPath, ['-e', WORKER_CODE])
             │
-            └─► lib/sandbox-runner.js  (child process)
+            └─► inline worker  (child process)
                   │  vm.runInNewContext(code)   — compile
                   │  fn(...testCase.args)       — call per test
-                  └─► IPC → TestResult[]
+                  └─► stdout JSON → TestResult[]
   │
   └─► EvaluationResult  →  ResultsPanel
 ```
@@ -63,17 +62,17 @@ app/api/evaluate/route.ts
 
 Running untrusted LLM-generated code requires two layers of isolation. Using only a timeout leaves the main server process exposed. The Node.js `vm` module alone has known escape vectors. This project uses both, in series — defense in depth.
 
-### Layer 1 — child_process.fork (process isolation)
+### Layer 1 — child_process.spawn (process isolation)
 
-`lib/sandbox.ts` forks `sandbox-runner.js` as a separate Node.js process via `child_process.fork`. Results are exchanged over an IPC channel. From the parent's perspective:
+`lib/sandbox.ts` spawns a short-lived Node.js child process via `spawn(process.execPath, ['-e', WORKER_CODE])`. The worker code is inlined as a string — there is no external file. Input (`code`, `functionName`, `testCases`) is delivered as JSON over stdin; results are returned as JSON over stdout. From the parent's perspective:
 
 - **Crash isolation**: a thrown exception or segfault in the worker cannot affect the Next.js server process.
 - **Kill switch**: a `setTimeout` in the parent kills the worker after `PROCESS_TIMEOUT_MS` (15s) if it hasn't responded. This catches infinite loops that survive the vm timeout.
-- **stdio suppression**: the worker runs with `{ silent: true }` so its stdout/stderr don't pollute the dev console.
+- **No external file**: inlining the worker avoids any file-path resolution at build time, which is what makes this approach compatible with Vercel's bundler (webpack statically analyzes `fork()` call sites and tries to bundle the referenced file — an external path breaks the Vercel build).
 
 ### Layer 2 — vm.runInNewContext (context isolation)
 
-Inside the worker, `lib/sandbox-runner.js` runs the generated code with Node's built-in `vm` module:
+Inside the inline worker, the generated code runs with Node's built-in `vm` module:
 
 ```js
 const sandbox = Object.create(null)  // no prototype chain, no inherited globals
