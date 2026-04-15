@@ -8,7 +8,6 @@
 // JavaScript string can be passed directly to the sandbox.
 
 const XAI_BASE_URL = 'https://api.x.ai/v1'
-const MODEL = 'grok-3'
 
 const SYSTEM_PROMPT =
   'You are a coding assistant. Write clean, correct JavaScript. ' +
@@ -21,6 +20,11 @@ export async function generateCode(prompt: string): Promise<string> {
     throw new Error('XAI_API_KEY environment variable is not set')
   }
 
+  const model = process.env.GROK_MODEL
+  if (!model) {
+    throw new Error('GROK_MODEL environment variable is not set')
+  }
+
   const response = await fetch(`${XAI_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -28,7 +32,7 @@ export async function generateCode(prompt: string): Promise<string> {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       temperature: 0,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },

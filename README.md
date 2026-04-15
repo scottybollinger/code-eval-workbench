@@ -170,3 +170,4 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Required | Description |
 |---|---|---|
 | `XAI_API_KEY` | Yes | xAI API key — used server-side only in `lib/grok.ts` |
+| `GROK_MODEL` | Yes | Model to use for code generation (e.g. `grok-4.20-reasoning`) |
